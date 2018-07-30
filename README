@@ -1,0 +1,33 @@
+FIT3042 Assignment 3 Archiver README
+
+Damian Katsigiannis: 24222933
+
+Running the program:
+
+	- The gzipped archive contains the following files:
+		- dear
+		- undear
+		- README
+
+Pre-requisites:
+	- The following programs must be installed before running the programs:
+		- ncompress (sudo apt-get install ncompress)
+		- Archive::Tar
+		- File::Compare
+		- Archive::Extract
+
+The dear program can be run with the following arguments:
+
+	- ./dear [options] outfile indir	//where outfile is the name of the archive output and indir is the name of the directory you want to archive.
+
+		options:
+			- -g: compress result with gzip
+			- -b: compress result with bzip2
+			- -c: compress result with compress
+
+	- ./undear [options] archive		//where archive is the tar archive produced by dear
+
+		options:
+			- -d: delete duplicate files
+			- -l: unarchive duplicate files as soft links
+			- -c: unarchive duplicate files as copies of the originals

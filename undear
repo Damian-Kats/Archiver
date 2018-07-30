@@ -1,0 +1,31 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Archive::Extract;
+
+if (@ARGV == 2)
+{
+	my $ae = Archive::Extract->new( archive => "$ARGV[1]" );
+	my $ok = $ae->extract or die "Failed to extract archive.\n";
+	
+	if ($ARGV[0] eq '-d')
+	{
+		print("delete duplicates\n");
+	}
+	elsif ($ARGV[0] eq '-l')
+	{
+		print("soft links\n");
+	}
+	elsif ($ARGV[0] eq '-c')
+	{
+		print("copies of duplicates\n");
+	}
+	else
+	{
+		print("Invalid flag provided to undear\n");
+	}
+}
+else
+{
+	print("Invalid number of arguments provided to undear.\n");	
+}

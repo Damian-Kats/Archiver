@@ -1,0 +1,141 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Cwd;
+use Archive::Tar;
+use File::Compare;
+
+our @files = (0);	
+our $counter = 0;
+
+if (@ARGV == 2) # No flags provided, basic Tar functionality
+{
+	my $parent = getcwd . '/' . "$ARGV[1]";
+	my $output = "$ARGV[0]";
+	my $dup_loc = getcwd . '/' . "dup_loc.txt";
+
+	# Check if directory in command line exists
+	if (-d $parent)
+	{
+		my $tar = Archive::Tar->new();
+		traverse_dir($parent, $dup_loc);
+		$tar->add_files(@files);
+		$tar->add_files( <"$dup_loc"> );
+		$tar->write("$output.tar"); #tar archive
+		unlink $dup_loc;
+	}
+	else
+	{
+		print("There is no such directory named $ARGV[1].\n");
+	}
+}
+elsif (@ARGV == 3) # Flag provided, check which functionality to proceed with or fail
+{
+	my $parent = "/home/Damian/FIT3042/asgn3/$ARGV[2]";
+	my $output = "$ARGV[1]";
+	my $dup_loc = getcwd . '/' . "dup_loc.txt";
+
+	# Check if directory in command line exists
+	if (-d $parent)
+	{
+		if ($ARGV[0] eq '-g') # gzip
+		{
+			my $tar = Archive::Tar->new();
+			traverse_dir($parent, $dup_loc);
+			$tar->add_files(@files);
+			$tar->add_files( <"$dup_loc"> );
+			$tar->write("$output.tgz", COMPRESS_GZIP); # gzip compressed
+			unlink $dup_loc;
+		}
+		elsif ($ARGV[0] eq '-b') # bzip2
+		{
+			my $tar = Archive::Tar->new();
+			traverse_dir($parent, $dup_loc);
+			$tar->add_files(@files);
+			$tar->add_files( <"$dup_loc"> );
+			$tar->write("$output.tbz", COMPRESS_BZIP); # bzip2 compressed
+			unlink $dup_loc;
+		}
+		elsif ($ARGV[0] eq '-c') # compress
+		{
+			my $tar = Archive::Tar->new();
+			traverse_dir($parent, $dup_loc);
+			$tar->add_files(@files);
+			$tar->add_files( <"$dup_loc"> );
+			$tar->write("$output.tar");
+			unlink $dup_loc;
+
+			my @command = ("bash", "-c", "compress -f $output.tar");
+			system(@command);
+		}
+		else # Invalid flag
+		{
+			die ("Invalid flag provided to dear.\n");
+		}
+	}
+	else
+	{
+		print("There is no such directory named $ARGV[2].\n");
+	}
+}
+else
+{
+	print("Invalid number of arguments provided to dear.\n");
+}
+
+# Recursive sub routine for traversing through directories and finding files and duplicates
+sub traverse_dir
+{
+	my $par_path = shift; # Current parent path
+	my $dup_loc = shift; # Location of file containing duplicate locations
+	my $par_dir;
+	my $sub_dir;
+	my $dup;
+
+	# Open parent directory or fail
+	opendir($par_dir, $par_path) or die ("Failed to open $par_dir: $!");
+	
+	while (my $sub_folders = readdir($par_dir))
+	{
+		next if ($sub_folders =~ /^..?$/); # Skip . and .. folders
+		my $path = $par_path . '/' . $sub_folders; # Keep track of current path
+		
+		if (-f "$path") # Check if current path leads to file 
+		{
+			# If filename matches filenames in array then check contents of files
+			if ( grep( /.$sub_folders$/, @files) )
+			{
+				($dup) = grep( /.$sub_folders$/, @files); 
+		
+				# Open filehandles for potential duplicates
+				open(my $fh1, '<', $path) or die "Cannot open file $path";
+				
+				open(my $fh2, '<', $dup) or die "Cannot open file $dup";
+				
+				# If files have identical contents then handle duplicate
+				if (compare($fh1, $fh2) == 0)
+				{
+					# print("$path and $dup are duplicates\n");
+					open(my $fd, ">>$dup_loc"); # Store duplicate locations
+					print $fd "$path $dup\n";
+					close($fd);
+				}
+				close($fh1);
+				close($fh2);
+			}
+			else
+			{	
+				# Add it to array and increment counter
+				$files[$counter] = $path;
+				# print("File $counter in array is $files[$counter]\n");
+				$counter++;
+			}
+		}
+		elsif (-d "$path") # If a directory is found then traverse it
+		{
+			traverse_dir($path, $dup_loc);
+		}	
+	}
+	closedir($par_dir);
+}
+
